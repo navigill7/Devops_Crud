@@ -1,22 +1,52 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const {MONGO_IP, MONGO_PORT, MONGO_USER, MONGO_PASSWORD} = require("./config/config");
-
+const {MONGO_USER, MONGO_PASSWORD, MONGO_IP, MONGO_PORT} = require("./config/config");
 const app = express();
+
+const postRouter = require("./routes/postRoutes");
+
 const mongoURL = `mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_IP}:${MONGO_PORT}/?authSource=admin`;
 
-mongoose.connect(
-    mongoURL)
-    .then(() => console.log("MongoDB started..."))
-    .catch((e) => {console.log("Error :",e)});
+// mongoose.connect(
+//     // "mongodb://root:root@192.168.32.2:27017/?authSource=admin")
+//     // "mongodb://root:root@mongo:27017/?authSource=admin")
+//     mongoURL)
+//     .then(() => console.log("Successfully connected to DB"))
+//     .catch((e) => console.log("Error :",e));
 
+
+const mongoConnection = () => mongoose.connect(
+    // "mongodb://root:root@192.168.32.2:27017/?authSource=admin")
+    // "mongodb://root:root@mongo:27017/?authSource=admin")
+    mongoURL)
+    .then(() => console.log("Successfully connected to DB"))
+    .catch((e) => {
+        console.log("Error :",e);
+        // so it will try to reconnect after every 5 seconds (but still this is not best practice)
+        setTimeout(mongoConnection, 5000);
+    });
+
+
+// to handle json
+app.use(express.json());
 
 app.get("/", (req, res) => {
-    res.send("<h1>Hello from Node JS with Docker</h1>");
+    res.send("<h1>Hello World Using Node + Mongo + Docker Compose</h1>");
 });
 
-const PORT = process.env.PORT || 3000;
+// for testing load balancing
+app.get("/api/v1", (req, res) => {
+    res.send("<h1>Hello User...</h1>");
+    console.log("It is running...");
+});
 
-app.listen(PORT, ()=> {
-    console.log("Server started at :",PORT);
+mongoConnection();
+
+
+// localhost:3000/posts
+app.use("/api/v1/posts", postRouter);
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 });
